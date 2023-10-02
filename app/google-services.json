@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "300839326104",
+    "project_id": "yapepayments-9c870",
+    "storage_bucket": "yapepayments-9c870.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:300839326104:android:d809f135ef1e7d245c9bed",
+        "android_client_info": {
+          "package_name": "com.example.yapepay"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "300839326104-bbg6ilc7b02s29or0dn1kg4lq6tu6e3t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBr8tlbdfjFw4-jwtyq6zrEhGRbizzEoM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "300839326104-bbg6ilc7b02s29or0dn1kg4lq6tu6e3t.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "300839326104-naoq7d341nl6qht3jk371g056jjhdl42.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.yapepay.yapepay"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
