@@ -11,15 +11,21 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
 import com.example.yapepay.services.ListenerService
 import com.example.yapepay.services.ListenerStatus
+import com.example.yapepay.services.dataBody
+import com.example.yapepay.services.servidorEstado
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -27,6 +33,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 
 class principal : AppCompatActivity() {
@@ -40,17 +51,138 @@ class principal : AppCompatActivity() {
     lateinit var sent:TextView
     var estado =0
     private val CHANNEL_ID="1"
+    private lateinit var semaforo:ImageView
+    private val handlerThread =HandlerThread("Verificar estado de cola del Servidor")
+    private lateinit var handler:Handler
+
+    fun iniciarVerificacionEnOnCreate() {
+        handlerThread.start()
+        handler= Handler(handlerThread.looper)
+        handler.post(VerificarCambiosSemaforo())
+    }
+    fun EnviarEstadoServidor( estado_cola:Int ){
+        var estado_colaverde=""
+        var estado_colanaranja=""
+        var estado_colarojo=""
+        var estadoStr=when(estado_cola){
+            500->estado_colaverde="500"
+            1000->estado_colanaranja="1000"
+            else ->estado_colarojo="0"
+
+        }
+        var estadoString=when(estado_cola){
+            500->"Verde"
+            1000->"Amarillo"
+            else ->"Rojo"
+
+        }
+        val rf=Retrofit.Builder()
+            .baseUrl("https://uygczevnxayqgfaiuyuy.supabase.co")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        val request=rf.create(servidorEstado::class.java)
+        val estadoColaVerdeInt = try {
+            estado_colaverde.toInt()
+        } catch (e: NumberFormatException) {
+            null
+        }
+
+        val estadoColaNaranjaInt = try {
+            if (estado_colanaranja.isNotEmpty()) estado_colanaranja.toInt() else null
+        } catch (e: NumberFormatException) {
+            // Manejar la excepción, por ejemplo, asignar un valor predeterminado o lanzar un error
+            // En este ejemplo, se asigna null como predeterminado para indicar que no hay valor
+            null
+        }
+
+        val estadoColaRojoInt = try {
+            estado_colarojo.toInt()
+        } catch (e: NumberFormatException) {
+            // Manejar la excepción, por ejemplo, asignar un valor predeterminado o lanzar un error
+            // En este ejemplo, se asigna el valor 0 como predeterminado
+            null
+        }
+        val cal:Call<Void> = request.enviarData("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5Z2N6ZXZueGF5cWdmYWl1eXV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDA5OTkwNDksImV4cCI6MjAxNjU3NTA0OX0.hgb12daiZVI3p6d8xAY-jyYwY3VmSQNp9nGeS0cymRo",
+            dataBody(estadoColaVerdeInt, estadoColaNaranjaInt, estadoColaRojoInt))
+        cal.enqueue(object:Callback<Void>{
+            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                if (response.isSuccessful) {
+                    actualizarServidor(pref,estadoString)
+                    val estado = response.code()
+                    Log.d("Exito al enviar estado",estado.toString())
+
+                } else {
+                    Log.d("Error al enviar estado","El servidor si respondio,pero erroneo ${response.body().toString()}")
+                }
+            }
+
+            override fun onFailure(call: Call<Void>, t: Throwable) {
+                Log.d("Error al enviar estado",t.message.toString())
+            }
+
+        })
+    }
+    fun detenerVerificacion() {
+        handler.removeCallbacksAndMessages(null)
+        handlerThread.quit()
+    }
+    fun estadoServidor(sharedPreferences: SharedPreferences):String{
+        return sharedPreferences.getString("cola","nulo").toString()
+    }
+    fun actualizarServidor(sharedPreferences: SharedPreferences,cola:String){
+        with(sharedPreferences.edit()){
+            putString("cola",cola)
+            apply()
+        }
+    }
+   private fun VerificarCambiosSemaforo(): Runnable {
+
+
+       return object :Runnable {
+           override fun run() {
+               val  cantidad_notificaciones =listener.Cantidad_Notificaciones(pref)
+               var estado_cola = when {
+                   cantidad_notificaciones <= 500 -> 500
+                   cantidad_notificaciones in 501 .. 1000 ->1000
+                   else->0
+
+               }
+               val estadoActual=estadoServidor(pref)
+               Log.d("ESTADO",estadoActual)
+               var enviar=true
+               if(estado_cola==500 && estadoActual.equals("Verde")){
+                   enviar=false
+               }else{
+                   if(estado_cola==1000 && estadoActual.equals("Amarillo") ){
+                       enviar=false
+                   }else{
+                       if(estado_cola==0 && estadoActual.equals("Rojo") ){
+                           enviar=false
+                       }
+                   }
+               }
+               updateSemaphore(cantidad_notificaciones)
+               if(enviar){
+                   EnviarEstadoServidor(estado_cola)
+               }
+               handler.postDelayed(this, 1000)
+           }
+       }
+   }
+
     @SuppressLint("SuspiciousIndentation")
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_principal)
+        semaforo=findViewById(R.id.imagensemaforo)
         listener= ListenerStatus()
         pref=this.getSharedPreferences("settings", MODE_PRIVATE)
+
+        iniciarVerificacionEnOnCreate()
         txtdomain=findViewById(R.id.domain)
         btnaction=findViewById(R.id.btnaction)
         sent=findViewById(R.id.send)
-
         notificationLiveData= ListenerService()
         estado++
         state=findViewById(R.id.state)
@@ -64,6 +196,7 @@ class principal : AppCompatActivity() {
 
             // Buscar las vistas dentro del bottomSheetDialog
             val domain: EditText? = bottomSheetDialog.findViewById(R.id.editTextdomain)
+            val apikey: EditText?=bottomSheetDialog.findViewById(R.id.editTextapikey)
             val btndomain: Button? = bottomSheetDialog.findViewById(R.id.btndomain)
             val detail:TextView?=bottomSheetDialog.findViewById(R.id.txtdetails)
             bottomSheetDialog.show()
@@ -76,31 +209,43 @@ class principal : AppCompatActivity() {
                     dialog.show()
 
                 }else{
-                    btndomain?.text="Conectando..."
-                    listener.updateDomain(this@principal ,domain?.text.toString(),pref)
-                    val domainText = domain?.text.toString()
+                    if(apikey?.text.toString()==""){
+                        val dialog=  AlertDialog.Builder(bottomSheetDialog.context)
+                            .setTitle("ERROR")
+                            .setMessage("NO HAS INGRESADO LA APIKEY . INTENTALO NUEVAMENTE!")
+                            .create()
+                        dialog.show()
 
-                    GlobalScope.launch(Dispatchers.IO) {
-                        val res = listener.testTheDomain(domainText)
-                        withContext(Dispatchers.Main) {
-                            if (res == "200") {
-                                detail?.text = "CONEXION ESTABLECIDA"
-                                btndomain?.text="REGISTRAR"
+                    }else{
+                        btndomain?.text="Conectando..."
+                        listener.updateDomain(this@principal ,domain?.text.toString(),apikey?.text.toString(), pref)
+                        val domainText = domain?.text.toString()
+                        val apikeyText=apikey?.text.toString()
+                        GlobalScope.launch(Dispatchers.IO) {
+                            val res = listener.testTheDomain(domainText,apikeyText)
+                            withContext(Dispatchers.Main) {
+                                if (res == "200" || res == "201") {
+                                    detail?.text = "CONEXION ESTABLECIDA"
+                                    btndomain?.text="REGISTRAR"
 
-                            } else {
-                                val dialog = AlertDialog.Builder(bottomSheetDialog.context)
-                                    .setTitle("Ocurrió un Error")
-                                    .setMessage(res)
-                                    .create()
-                                dialog.show()
-                                detail?.text = "SIN CONEXION"
-                                btndomain?.text="REGISTRAR"
+                                } else {
+                                    val dialog = AlertDialog.Builder(bottomSheetDialog.context)
+                                        .setTitle("Ocurrió un Error")
+                                        .setMessage(res)
+                                        .create()
+                                    dialog.show()
+                                    detail?.text = "SIN CONEXION"
+                                    btndomain?.text="REGISTRAR"
+                                }
                             }
                         }
+
+                        var res= listener.domainCheck(pref)
+                        txtdomain.text=res
                     }
 
-                    var res= listener.domainCheck(pref)
-                    txtdomain.text=res
+
+
 
                 }
             }
@@ -134,6 +279,7 @@ class principal : AppCompatActivity() {
                     }
 
 
+
             }else{
                 verifierExitState="si"
 
@@ -142,6 +288,19 @@ class principal : AppCompatActivity() {
                 StopService()
             }
         }
+    }
+
+
+    fun modificarSemaforo(tipo:String){
+       try {
+           when(tipo){
+               "verde"->semaforo.setImageResource(R.drawable.verde)
+               "amarillo"->semaforo.setImageResource(R.drawable.amarillo)
+               "rojo"->semaforo.setImageResource(R.drawable.rojo)
+           }
+       }catch (ex:Exception){
+           Log.d("Error en Cambiar Semaforo",ex.message.toString())
+       }
     }
     fun showBatteryOptimizationDialog(context: Context) {
         val builder = AlertDialog.Builder(context)
@@ -257,6 +416,29 @@ class principal : AppCompatActivity() {
             }
         }
 
+    }
+
+    fun updateSemaphore(cant:Int) {
+
+        try {
+            Log.d("Semaforo",cant.toString())
+           when {
+                 cant in 1..500 -> {
+                      modificarSemaforo("verde")
+                  }
+                cant in 501..1000 -> {
+                    modificarSemaforo("amarillo")
+                }
+                cant > 1000 -> {
+                    modificarSemaforo("rojo")
+
+                }
+            }
+
+
+        }catch (ex:Exception){
+            Log.d("Error en updatE Semaphore",ex.message.toString())
+        }
     }
 
 

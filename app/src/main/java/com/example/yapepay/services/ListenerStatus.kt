@@ -23,9 +23,10 @@ import java.net.URL
 
 class ListenerStatus {
     val principal =principal()
-     fun updateDomain(context: Context,domain:String ,preferences: SharedPreferences){
+     fun updateDomain(context: Context,domain:String,apikey:String ,preferences: SharedPreferences){
          with(preferences.edit()){
              putString("domain",domain)
+             putString("apikey",apikey)
              apply()
          }
 
@@ -50,13 +51,14 @@ class ListenerStatus {
         return preferences.getString("domain","NO CONFIGURADO").toString()
     }
 
-    fun testTheDomain(domain: String): String {
+    fun testTheDomain(domain: String,apikey:String): String {
          try {
-            val url = URL("https://$domain/wp-admin/admin-ajax.php?action=yapepayments")
+            val url = URL("https://$domain/")
             // Si la URL es válida, continuar con el código de conexión
             val urlConnection = url.openConnection() as HttpURLConnection
             try {
                 urlConnection.requestMethod = "POST"
+                urlConnection.setRequestProperty("apikey",apikey)
                 urlConnection.doOutput = true
                 urlConnection.setChunkedStreamingMode(0)
                 val responseCode = urlConnection.responseCode
@@ -79,6 +81,11 @@ class ListenerStatus {
             apply()
         }
 
+    }
+
+    fun Cantidad_Notificaciones(preferences: SharedPreferences): Int {
+        val cantidad=preferences
+        return cantidad.getInt("cantidad_notificaciones",0)
     }
 
 

@@ -147,19 +147,19 @@
         android:id="@+id/layoutimg"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
+        android:layout_marginTop="72dp"
+        android:layout_marginBottom="1dp"
         android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@+id/layoutsend"
+        app:layout_constraintBottom_toTopOf="@+id/linearLayout2"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.775"
+        app:layout_constraintHorizontal_bias="0.4"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/btnaction"
-        app:layout_constraintVertical_bias="0.699">
+        app:layout_constraintTop_toTopOf="@+id/btnaction">
 
         <ImageView
             android:id="@+id/imageView2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="104dp"
+            android:layout_height="64dp"
             android:layout_gravity="center"
             android:scaleType="fitCenter"
             android:src="@drawable/sent" />
@@ -186,6 +186,29 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/linearLayout2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@+id/layoutsend"
+        app:layout_constraintEnd_toStartOf="@+id/floatingActionButton"
+        app:layout_constraintStart_toStartOf="parent">
+
+
+            <ImageView
+            android:id="@+id/imagensemaforo"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:rotation="90"
+            android:scaleType="fitCenter"
+            android:src="@drawable/verde" />
+
+
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/layoutsend"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -203,9 +226,10 @@
             android:paddingTop="10dp"
             android:paddingRight="45dp"
             android:paddingBottom="10dp"
-            android:text="@Copyright Diego Soto-Viru tec 2023 Todos los derechos Reservados"
+            android:text="@Copyright Diego Soto-TecHub 2023 Todos los derechos Reservados"
             android:textColor="@color/white"
             android:textSize="18dp" />
+
     </LinearLayout>
 
 
@@ -223,4 +247,5 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         tools:layout_editor_absoluteX="339dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

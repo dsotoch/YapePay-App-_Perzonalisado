@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <style name="NotificationStyle" parent="@style/TextAppearance.Compat.Notification">
+        <item name="android:background">@color/light_blue_A200</item>
+    </style>
+</resources>
